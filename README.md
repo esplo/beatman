@@ -109,7 +109,7 @@ WIP
 ### task: (beatoraja限定) 目的に応じたカスタムフォルダを作成
 
 ```Powershell
-> beatman.exe --mydir O:\bms task --table-url https://stellabms.xyz/sl/table.html --player-score-path "D:\beatoraja0.8.3\player\player1\score.db" --songdata-path "D:\beatoraja0.8.3\songdata.db" --folder-default-json "D:\beatoraja0.8.3\table\default.json" --lower-limit-level 3 --target-lamp 4 --task-notes 50000
+> beatman.exe --mydir O:\bms task --table-url https://stellabms.xyz/sl/table.html --player-score-path "D:\beatoraja\player\player1\score.db" --songdata-path "D:\beatoraja\songdata.db" --folder-default-json "D:\beatoraja\table\default.json" --lower-limit-level 3 --target-lamp 4 --task-notes 50000
 ```
 
 健康のために一日50,000ノーツ叩く場合など、日々のタスクを満たす譜面をまとめて1つのフォルダとして表示します。
