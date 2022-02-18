@@ -1,0 +1,170 @@
+# thanks to https://nkon.github.io/GitHub_Actions/
+
+name: RustBuild
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  PROG_NAME: beatman
+  PKG_CONFIG_ALLOW_CROSS: 1
+  ACTIONS_RUNNER_DEBUG: true
+  ACTIONS_STEP_DEBUG: true
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        target:
+          # - x86_64-unknown-linux-musl
+          - x86_64-pc-windows-msvc
+          #- x86_64-apple-darwin
+        include:
+          # - target: x86_64-unknown-linux-musl
+          #   os: ubuntu-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+          #- target: x86_64-apple-darwin
+          #  os: macos-latest
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Setup code
+        uses: actions/checkout@v2
+
+      - name: Install musl tools
+        if : matrix.target == 'x86_64-unknown-linux-musl'
+        run: |
+          sudo apt update && sudo apt install -qq -y musl-tools --no-install-recommends
+
+      - name: Install ssl
+        if : matrix.target == 'x86_64-unknown-linux-musl'
+        run: |
+          sudo apt install -qq -y libssl-dev pkg-config build-essential --no-install-recommends
+
+      # - name: show ssl
+      #   if : matrix.target == 'x86_64-unknown-linux-musl'
+      #   run: |
+      #     dpkg -L libssl-dev | grep lib
+      # - name: show ssl2
+      #   if : matrix.target == 'x86_64-unknown-linux-musl'
+      #   run: |
+      #     dpkg -L libssl-dev | grep include
+
+      - name: link sslconf
+        if : matrix.target == 'x86_64-unknown-linux-musl'
+        run: |
+          cd /usr/include/openssl/
+          sudo ln -s /usr/include/gnutls/openssl.h .
+          sudo ln -s ../x86_64-linux-gnu/openssl/opensslconf.h .
+
+      - name: Setup Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+
+      - name: rustup add (linux musl)
+        if : matrix.target == 'x86_64-unknown-linux-musl'
+        run: |
+          rustup target add x86_64-unknown-linux-musl
+          rustup toolchain install stable-x86_64-unknown-linux-musl
+      - name: rustup add (win)
+        if : matrix.target == 'x86_64-pc-windows-msvc'
+        run: |
+          rustup target add x86_64-pc-windows-msvc
+          rustup toolchain install stable-x86_64-pc-windows-msvc
+
+      # - name: test
+      #   uses: actions-rs/cargo@v1
+      #   with:
+      #     command: test
+
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --target=${{ matrix.target }}
+
+      - name: Package for linux-musl
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: |
+          zip --junk-paths ${{ env.PROG_NAME }}-${{ matrix.target }} target/${{ matrix.target }}/release/${{ env.PROG_NAME }}
+
+      - name: Package for windows
+        if: matrix.target == 'x86_64-pc-windows-msvc'
+        run: |
+          powershell Compress-Archive -Path target/${{ matrix.target }}/release/${{ env.PROG_NAME }}.exe -DestinationPath ${{ env.PROG_NAME }}-${{ matrix.target }}.zip
+
+      - name: Package for macOS
+        if: matrix.target == 'x86_64-apple-darwin'
+        run: |
+          zip --junk-paths ${{ env.PROG_NAME }}-${{ matrix.target }} target/${{ matrix.target }}/release/${{ env.PROG_NAME }}
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: build-${{ matrix.target }}
+          path: ${{ env.PROG_NAME }}-${{ matrix.target }}.zip
+
+  create-release:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get date for release tag
+        env:
+          TZ: 'Asia/Tokyo'
+        run: echo "DT=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
+
+      - id: create-release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          name: Release ${{ github.ref }} ${{ env.DT }}
+          files: |
+            ${{ env.PROG_NAME }}-${{ matrix.target }}.zip
+          # draft: false
+          # prerelease: true
+
+      - run: |
+          echo ${{ steps.create-release.outputs.upload_url }}
+          echo '${{ steps.create-release.outputs.upload_url }}' > release_upload_url.txt
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: create-release
+          path: release_upload_url.txt
+    
+  upload-release:
+    strategy:
+      matrix:
+        target:
+          # - x86_64-unknown-linux-musl
+          - x86_64-pc-windows-msvc
+          # - x86_64-apple-darwin
+    needs: [create-release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v1
+        with:
+          name: create-release
+      - id: upload-url
+        run: |
+          echo "::set-output name=url::$(cat create-release/release_upload_url.txt)"
+      - uses: actions/download-artifact@v1
+        with:
+          name: build-${{ matrix.target }}
+      - uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.upload-url.outputs.url }}
+          asset_path: ./build-${{ matrix.target }}/${{ env.PROG_NAME }}-${{ matrix.target }}.zip
+          asset_name: ${{ env.PROG_NAME }}-${{ matrix.target }}.zip
+          asset_content_type: application/zip
