@@ -1,14 +1,11 @@
-use crate::chart_hashes::ChartHashes;
 use crate::chart_hashes::BMS_EXTENSIONS;
 use crate::errors::Result;
 use crate::fsutil;
 use log::warn;
-use log::{debug, error, info};
+use log::{debug, info};
 use rayon::prelude::*;
 use regex::Regex;
-use std::collections::HashMap;
-use std::collections::HashSet;
-use std::ffi::OsStr;
+
 use std::ffi::OsString;
 use std::fs;
 use std::io::{self, BufRead};

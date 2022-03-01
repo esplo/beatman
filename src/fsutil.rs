@@ -1,6 +1,6 @@
 use crate::errors::Result;
-use log::{debug, info};
-use std::ffi::{OsStr, OsString};
+use log::debug;
+use std::ffi::OsString;
 use std::path::Path;
 use std::{fs, io};
 
@@ -50,7 +50,7 @@ pub fn move_and_remove_dir(from: &Path, dest: &Path) -> Result<()> {
                     );
                     fs::copy(entry.path(), to).map(|_| ())
                 }
-                v => v
+                v => v,
             }?;
         }
     }

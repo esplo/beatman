@@ -1,7 +1,6 @@
 use crate::errors::Result;
 use jwalk::WalkDir;
-use jwalk::WalkDirGeneric;
-use log::{debug, info, warn};
+use log::{debug, info};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -14,16 +13,17 @@ type ChartHashMap = HashMap<String, Vec<PathBuf>>;
 pub const BMS_EXTENSIONS: &'static [&str] = &["bms", "bml", "bme", "pms"];
 
 fn charts_traverse(dir: &Path) -> Vec<PathBuf> {
-    WalkDir::new(dir).into_iter()
-    .flatten()
-    .filter(|entry| entry.file_type().is_file())
-    .filter(|file|
-        BMS_EXTENSIONS
-            .iter()
-            .any(|e| file.path().extension() == Some(std::ffi::OsStr::new(e)))
-    )
-    .map(|e| e.path())
-    .collect()
+    WalkDir::new(dir)
+        .into_iter()
+        .flatten()
+        .filter(|entry| entry.file_type().is_file())
+        .filter(|file| {
+            BMS_EXTENSIONS
+                .iter()
+                .any(|e| file.path().extension() == Some(std::ffi::OsStr::new(e)))
+        })
+        .map(|e| e.path())
+        .collect()
 }
 
 pub struct ChartHashes {
@@ -48,7 +48,6 @@ impl ChartHashes {
                 let hash = hasher.finalize();
                 let hash_string = format!("{:x}", hash);
                 debug!("Binary hash of {:?} is {}", path, hash_string);
-    
                 Ok((hash_string, path))
             };
             with_hash()
@@ -61,16 +60,14 @@ impl ChartHashes {
         let mut hash_with_dir = HashMap::new();
         chart_with_hashes.into_iter().for_each(|(hash, path)| {
             hash_with_dir
-            .entry(hash)
-            .or_insert(vec![])
-            .push(path.to_path_buf());
+                .entry(hash)
+                .or_insert(vec![])
+                .push(path.to_path_buf());
         });
 
         info!("different {:?} charts", hash_with_dir.len());
-    
-        Ok( ChartHashes {
-            hash_with_dir,
-        })
+
+        Ok(ChartHashes { hash_with_dir })
     }
 
     pub fn hashes(&self) -> &ChartHashMap {

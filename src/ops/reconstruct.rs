@@ -1,9 +1,7 @@
-use log::{debug, info};
+use log::info;
 use std::collections::HashSet;
 use std::fs;
-use std::io;
 use std::path::{Path, PathBuf};
-use std::time::SystemTime;
 
 use crate::chart_hashes::ChartHashes;
 use crate::errors::Result;
