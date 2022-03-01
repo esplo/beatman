@@ -134,7 +134,7 @@ beatorajaのデータベースとカスタムフォルダを利用していま�
 - lower-limit-level
   - 対象としたい下限難易度を指定。現状、数値のみ対応。
 - target-lamp
-  - "EASY", "NORMAL", "HARD" のいずれかを指定
+  - "ASSIST_EASY", "EASY", "NORMAL", "HARD" のいずれかを指定
 - task-notes
   - 目標の合計ノーツ数
 

@@ -142,6 +142,7 @@ fn main() -> Result<()> {
             task_notes,
         } => {
             let lamp_num = match target_lamp.as_str() {
+                "ASSIST_EASY" => Ok(3_u8),
                 "EASY" => Ok(4_u8),
                 "NORMAL" => Ok(5_u8),
                 "HARD" => Ok(6_u8),
