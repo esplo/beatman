@@ -172,7 +172,8 @@ pub fn create_task_folder(
         .iter()
         .take_while(|s| {
             notes += s.totalnotes;
-            notes < task_notes
+            // do not omit the last chart
+            notes - s.totalnotes < task_notes
         })
         .map(|t| DefaultTableSong {
             class: "bms.player.beatoraja.song.SongData".to_owned(),
