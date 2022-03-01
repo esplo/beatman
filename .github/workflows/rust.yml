@@ -125,6 +125,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          tag_name: ${{ env.DT }}
           name: Release ${{ github.ref }} ${{ env.DT }}
           files: |
             ${{ env.PROG_NAME }}-${{ matrix.target }}.zip
