@@ -1,11 +1,9 @@
-use crate::chart_hashes::ChartHashes;
 use crate::errors::Result;
 use crate::fsutil;
 use log::{debug, info};
-use std::collections::HashSet;
 use std::fs;
 use std::io;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::time::SystemTime;
 
 pub fn install_from_dirs(target_dir: &Path, dest_dir: &Path, dryrun: bool) -> Result<()> {

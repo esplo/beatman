@@ -1,4 +1,3 @@
-use chart_hashes::ChartHashes;
 use log::{error, info};
 use std::path::{Path, PathBuf};
 mod errors;
@@ -7,12 +6,9 @@ mod chart_hashes;
 mod fsutil;
 mod ops;
 mod table_loader;
-use clap::{ArgEnum, Args, Parser, Subcommand};
+use clap::{Parser, Subcommand};
 use std::env;
-use std::ffi::{OsStr, OsString};
-use std::time::SystemTime;
-use std::time::{Duration, Instant};
-use std::{fs, io};
+use std::time::Instant;
 
 #[derive(Parser)]
 struct Cli {

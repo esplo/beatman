@@ -1,19 +1,11 @@
-use crate::chart_hashes::ChartHashes;
 use crate::errors::Result;
-use crate::fsutil;
 use crate::table_loader;
-use chrono::{Date, DateTime, Local, Utc};
+use chrono::Local;
 use log::{debug, info};
-use rayon::iter::IntoParallelRefIterator;
-use rayon::prelude::*;
-use rusqlite::{named_params, params, Connection, OpenFlags};
+use rusqlite::{named_params, Connection, OpenFlags};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-use std::collections::HashSet;
 use std::fs;
-use std::io;
-use std::path::{Path, PathBuf};
-use std::time::SystemTime;
+use std::path::Path;
 
 #[derive(Debug, Clone)]
 struct TableData {
@@ -24,15 +16,19 @@ struct TableData {
 
 #[derive(Debug, Clone)]
 struct Score {
+    #[allow(dead_code)]
     sha256: String,
     clear: u8,
     playcount: u32,
+    #[allow(dead_code)]
     minbp: u32,
+    #[allow(dead_code)]
     scorehash: String,
 }
 
 #[derive(Debug, Clone)]
 struct ChartInfo {
+    #[allow(dead_code)]
     sha256: String,
     totalnotes: u32,
 }

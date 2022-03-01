@@ -1,14 +1,9 @@
 use log::{debug, info};
-use std::collections::HashSet;
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::chart_hashes::ChartHashes;
 use crate::errors::Result;
-use crate::fsutil;
 use crate::table_loader;
-use std::io;
-use std::time::SystemTime;
 
 pub fn check_table_coverage(
     score_url: &str,
