@@ -1,4 +1,4 @@
-use crate::chart_hashes::BMS_EXTENSIONS;
+use crate::chart_hashes::filter_bms_files;
 use crate::errors::Result;
 use crate::fsutil;
 use log::warn;
@@ -72,7 +72,7 @@ where
         debug!("{:?}, {:?}, {:?}", &path, artist, title);
 
         if let (Some(a), Some(t)) = (&artist, &title) {
-            Ok((a.clone(), t.clone()))
+                Ok((a.clone(), t.clone()))
         } else {
             let msg: String = format!("cannot read artist or title: {:?} {:?}", &artist, &title);
             Err(msg.into())
@@ -97,11 +97,7 @@ fn read_files_and_name(dir: &Path) -> Option<OsString> {
         .flatten()
         .flatten()
         .filter(|e| e.path().is_file())
-        .filter(|file| {
-            BMS_EXTENSIONS
-                .iter()
-                .any(|e| file.path().extension() == Some(std::ffi::OsStr::new(e)))
-        })
+        .filter(|file| filter_bms_files(&file.path()))
         .map(|e| e.path());
 
     let names = lookup_names(charts_paths);

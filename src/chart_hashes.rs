@@ -12,16 +12,18 @@ type ChartHashMap = HashMap<String, Vec<PathBuf>>;
 
 pub const BMS_EXTENSIONS: &'static [&str] = &["bms", "bml", "bme", "pms"];
 
+pub fn filter_bms_files(path: &Path) -> bool {
+    BMS_EXTENSIONS.iter().any(|e| {
+        path.extension().map(|ext| ext.to_ascii_lowercase()) == Some(std::ffi::OsString::from(e))
+    })
+}
+
 fn charts_traverse(dir: &Path) -> Vec<PathBuf> {
     WalkDir::new(dir)
         .into_iter()
         .flatten()
         .filter(|entry| entry.file_type().is_file())
-        .filter(|file| {
-            BMS_EXTENSIONS
-                .iter()
-                .any(|e| file.path().extension() == Some(std::ffi::OsStr::new(e)))
-        })
+        .filter(|file| filter_bms_files(&file.path()))
         .map(|e| e.path())
         .collect()
 }
