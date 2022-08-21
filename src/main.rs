@@ -120,6 +120,8 @@ fn main() -> Result<()> {
                 return Err("dest is not a directory".into());
             }
 
+            info!("== rename ==");
+            ops::rename::rename_dirs(&mydir, dryrun)?;
             info!("== merge ==");
             ops::merge::merge(&mydir, dryrun)?;
             info!("== reconstruct ==");
