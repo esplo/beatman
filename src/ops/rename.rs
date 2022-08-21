@@ -72,7 +72,12 @@ where
         debug!("{:?}, {:?}, {:?}", &path, artist, title);
 
         if let (Some(a), Some(t)) = (&artist, &title) {
+            if a.is_empty() || t.is_empty() {
+                let msg: String = format!("artist or title is blank: {:?} {:?}", &artist, &title);
+                Err(msg.into())
+            } else {
                 Ok((a.clone(), t.clone()))
+            }
         } else {
             let msg: String = format!("cannot read artist or title: {:?} {:?}", &artist, &title);
             Err(msg.into())
