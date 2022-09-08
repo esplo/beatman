@@ -3,6 +3,7 @@ use jwalk::WalkDir;
 use log::{debug, info};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::{fs, io};
 
@@ -26,6 +27,20 @@ fn charts_traverse(dir: &Path) -> Vec<PathBuf> {
         .filter(|file| filter_bms_files(&file.path()))
         .map(|e| e.path())
         .collect()
+}
+
+/// remove subdirectory to avoid moving into a parent directory
+fn filter_subdir(dir_paths: HashSet<&Path>) -> Result<HashSet<&Path>> {
+    let result = dir_paths
+        .clone()
+        .into_iter()
+        .filter(|d| {
+            !d.ancestors()
+                .filter(|pp| pp != d) // ignore myself
+                .any(|pp| dir_paths.contains(pp))
+        })
+        .collect();
+    Ok(result)
 }
 
 pub struct ChartHashes {
@@ -74,5 +89,15 @@ impl ChartHashes {
 
     pub fn hashes(&self) -> &ChartHashMap {
         &self.hash_with_dir
+    }
+
+    pub fn parents(&self) -> Result<HashSet<&Path>> {
+        let parents: HashSet<&Path> = HashSet::from_iter(
+            self.hashes()
+                .iter()
+                .flat_map(|(_, v)| v[0].parent())
+                .collect::<Vec<&Path>>(),
+        );
+        filter_subdir(parents)
     }
 }

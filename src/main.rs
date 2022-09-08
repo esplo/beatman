@@ -54,6 +54,9 @@ enum Commands {
             help = "destination directory. if omitted, use the same dir as mydir"
         )]
         dest: Option<PathBuf>,
+
+        #[clap(short, long, help = "if true, destination folder is divided into hash")]
+        shard: bool,
     },
 
     #[clap(about = "rename your directories")]
@@ -113,7 +116,7 @@ fn main() -> Result<()> {
                 ops::install_from_dir::install_from_dir(&from, &mydir, dryrun)?;
             }
         }
-        Commands::Organize { dest } => {
+        Commands::Organize { dest, shard } => {
             let dest = dest.as_ref().map(|d| Path::new(d)).unwrap_or(mydir);
             if !dest.is_dir() {
                 error!("dest is not a directory");
@@ -125,7 +128,7 @@ fn main() -> Result<()> {
             info!("== merge ==");
             ops::merge::merge(&mydir, dryrun)?;
             info!("== reconstruct ==");
-            ops::reconstruct::reconstruct(&mydir, &dest, dryrun)?;
+            ops::reconstruct::reconstruct(&mydir, &dest, dryrun, *shard)?;
         }
         Commands::Rename {} => {
             ops::rename::rename_dirs(&mydir, dryrun)?;

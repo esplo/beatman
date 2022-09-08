@@ -1,4 +1,4 @@
-use crate::chart_hashes::filter_bms_files;
+use crate::chart_hashes::{filter_bms_files, ChartHashes};
 use crate::errors::Result;
 use crate::fsutil;
 use log::warn;
@@ -130,19 +130,14 @@ fn read_files_and_name(dir: &Path) -> Option<OsString> {
 }
 
 pub fn rename_dirs(current_dir: &Path, dryrun: bool) -> Result<()> {
-    let dirs: Vec<PathBuf> = current_dir
-        .read_dir()
-        .into_iter()
-        .flatten()
-        .flatten()
-        .filter(|e| e.path().is_dir())
-        .map(|e| e.path())
-        .collect() // for parallelization
-        ;
+    let chart_hashes = ChartHashes::new(&current_dir)?;
+    let parents = chart_hashes.parents()?;
 
     // process in parallel, but rename sequentially
     let mut rename_targets = vec![];
-    dirs.par_iter()
+    let vec_parents = Vec::from_iter(parents);
+    vec_parents
+        .par_iter()
         .map(|path| {
             read_files_and_name(&path).and_then(|name| {
                 path.parent()
