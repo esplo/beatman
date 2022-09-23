@@ -1,4 +1,5 @@
 use log::{error, info};
+use serde::Serialize;
 use std::path::{Path, PathBuf};
 mod errors;
 use errors::Result;
@@ -8,12 +9,16 @@ mod ops;
 mod table_loader;
 use clap::{Parser, Subcommand};
 use std::env;
+use std::io::Write;
 use std::time::Instant;
 
 #[derive(Parser)]
 struct Cli {
     #[clap(long)]
     dryrun: bool,
+
+    #[clap(long)]
+    jsonlog: bool,
 
     #[clap(short, long, help = "your bms directory")]
     mydir: PathBuf,
@@ -81,13 +86,48 @@ enum Commands {
     },
 }
 
-fn main() -> Result<()> {
-    env::set_var("RUST_LOG", "info");
-    env_logger::init();
+#[derive(strum_macros::Display, Serialize, Debug)]
+pub enum FrontendMsg {
+    CheckNotFound,
+    CheckSummary,
+}
 
+#[derive(Serialize, Debug)]
+struct LogLine {
+    pub ts: String,
+    pub logtype: String,
+    pub level: String,
+    pub msg: String,
+}
+
+fn main() -> Result<()> {
     let start = Instant::now();
 
+    env::set_var("RUST_LOG", "info");
+
     let cli = Cli::parse();
+    if cli.jsonlog {
+        env_logger::Builder::from_default_env()
+            .format(|buf, record| {
+                let ts = buf.timestamp();
+                let logtype = if record.target().starts_with("beatman") {
+                    "LogMessage".to_owned()
+                } else {
+                    format!("frontend_{}", record.target().to_owned())
+                };
+
+                let ll = LogLine {
+                    ts: ts.to_string(),
+                    logtype,
+                    level: record.level().to_string(),
+                    msg: record.args().to_string(),
+                };
+                writeln!(buf, "{}", serde_json::to_string(&ll).unwrap())
+            })
+            .init();
+    } else {
+        env_logger::init();
+    }
 
     let mydir = &Path::new(&cli.mydir);
     if !mydir.is_dir() {

@@ -1,9 +1,23 @@
-use log::{debug, info};
-use std::path::Path;
-
 use crate::chart_hashes::ChartHashes;
 use crate::errors::Result;
-use crate::table_loader;
+use crate::{table_loader, FrontendMsg};
+use log::{debug, info};
+use serde::Serialize;
+use std::path::Path;
+
+#[derive(Serialize, Debug)]
+struct NotFoundInfo {
+    pub level: String,
+    pub title: String,
+    pub url: String,
+    pub diff_url: Option<String>,
+}
+
+#[derive(Serialize, Debug)]
+struct CheckSummary {
+    pub found: i32,
+    pub total: i32,
+}
 
 pub fn check_table_coverage(
     score_url: &str,
@@ -33,10 +47,21 @@ pub fn check_table_coverage(
             if !sd.url_diff.is_empty() {
                 info!("--diff--> {}", sd.url_diff);
             }
+            info!(target: &FrontendMsg::CheckNotFound.to_string(), "{}", 
+            serde_json::to_string(
+                &NotFoundInfo { 
+                level: sd.level.clone(), title: sd.title.clone(), url: sd.url.clone(), 
+                diff_url: if sd.url_diff.is_empty() { None } else {Some(sd.url_diff.clone())}
+            }).unwrap());
         }
     });
 
     info!("{} / {} charts found", counter, total);
-
+    info!(target: &FrontendMsg::CheckSummary.to_string(), "{}", 
+    serde_json::to_string(
+        &CheckSummary { 
+            found: counter, 
+            total: total  
+          }).unwrap());
     Ok(())
 }
