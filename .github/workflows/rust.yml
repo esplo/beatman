@@ -1,5 +1,3 @@
-# thanks to https://nkon.github.io/GitHub_Actions/
-
 name: RustBuild
 
 on:
@@ -17,45 +15,30 @@ jobs:
   build:
     strategy:
       matrix:
-        target:
-          # - x86_64-unknown-linux-musl
-          - x86_64-pc-windows-msvc
-          #- x86_64-apple-darwin
         include:
-          # - target: x86_64-unknown-linux-musl
-          #   os: ubuntu-latest
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            ext: ''
           - target: x86_64-pc-windows-msvc
             os: windows-latest
-          #- target: x86_64-apple-darwin
-          #  os: macos-latest
+            ext: .exe
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            ext: ''
 
     runs-on: ${{ matrix.os }}
 
     steps:
       - name: Setup code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
-      - name: Install musl tools
-        if : matrix.target == 'x86_64-unknown-linux-musl'
+      - name: Install musl and required packages
+        if: matrix.target == 'x86_64-unknown-linux-musl'
         run: |
-          sudo apt update && sudo apt install -qq -y musl-tools --no-install-recommends
-
-      - name: Install ssl
-        if : matrix.target == 'x86_64-unknown-linux-musl'
-        run: |
-          sudo apt install -qq -y libssl-dev pkg-config build-essential --no-install-recommends
-
-      # - name: show ssl
-      #   if : matrix.target == 'x86_64-unknown-linux-musl'
-      #   run: |
-      #     dpkg -L libssl-dev | grep lib
-      # - name: show ssl2
-      #   if : matrix.target == 'x86_64-unknown-linux-musl'
-      #   run: |
-      #     dpkg -L libssl-dev | grep include
+          sudo apt update && sudo apt install -qq -y musl-tools libssl-dev pkg-config build-essential --no-install-recommends
 
       - name: link sslconf
-        if : matrix.target == 'x86_64-unknown-linux-musl'
+        if: matrix.target == 'x86_64-unknown-linux-musl'
         run: |
           cd /usr/include/openssl/
           sudo ln -s /usr/include/gnutls/openssl.h .
@@ -69,47 +52,16 @@ jobs:
           target: ${{ matrix.target }}
           override: true
 
-      - name: rustup add (linux musl)
-        if : matrix.target == 'x86_64-unknown-linux-musl'
-        run: |
-          rustup target add x86_64-unknown-linux-musl
-          rustup toolchain install stable-x86_64-unknown-linux-musl
-      - name: rustup add (win)
-        if : matrix.target == 'x86_64-pc-windows-msvc'
-        run: |
-          rustup target add x86_64-pc-windows-msvc
-          rustup toolchain install stable-x86_64-pc-windows-msvc
-
-      # - name: test
-      #   uses: actions-rs/cargo@v1
-      #   with:
-      #     command: test
-
       - name: Build
         uses: actions-rs/cargo@v1
         with:
           command: build
           args: --release --target=${{ matrix.target }}
 
-      - name: Package for linux-musl
-        if: matrix.target == 'x86_64-unknown-linux-musl'
-        run: |
-          zip --junk-paths ${{ env.PROG_NAME }}-${{ matrix.target }} target/${{ matrix.target }}/release/${{ env.PROG_NAME }}
-
-      - name: Package for windows
-        if: matrix.target == 'x86_64-pc-windows-msvc'
-        run: |
-          powershell Compress-Archive -Path target/${{ matrix.target }}/release/${{ env.PROG_NAME }}.exe -DestinationPath ${{ env.PROG_NAME }}-${{ matrix.target }}.zip
-
-      - name: Package for macOS
-        if: matrix.target == 'x86_64-apple-darwin'
-        run: |
-          zip --junk-paths ${{ env.PROG_NAME }}-${{ matrix.target }} target/${{ matrix.target }}/release/${{ env.PROG_NAME }}
-
       - uses: actions/upload-artifact@v2
         with:
-          name: build-${{ matrix.target }}
-          path: ${{ env.PROG_NAME }}-${{ matrix.target }}.zip
+          path: target/${{ matrix.target }}/release/${{ env.PROG_NAME }}${{ matrix.ext }}
+          name: ${{ env.PROG_NAME }}-${{ matrix.target }}
 
   create-release:
     needs: [build]
@@ -117,15 +69,29 @@ jobs:
     steps:
       - name: Get date for release tag
         env:
-          TZ: 'Asia/Tokyo'
+          TZ: "Asia/Tokyo"
         run: echo "DT=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
-
-      - id: create-release
+      - uses: actions/download-artifact@v2
+        with:
+          path: artifacts
+      - name: cp artifact files
+        run: |
+          for file in $( find ./artifacts -type f ); do
+            PL=$(echo $file | cut -f 3 -d "/")
+            FULL_FILENAME=$(echo $file | cut -f 4 -d "/")
+            FILENAME=$(echo $FULL_FILENAME | cut -f 1 -d ".")
+            EXT=$(echo $FULL_FILENAME | cut -s -f 2 -d ".")
+            if [ -n "$EXT" ] ;then
+                EXT=".${EXT}"
+            fi
+            cp ./artifacts/${PL}/${FULL_FILENAME} /tmp/${PL}${EXT}
+          done
+      - name: Create release
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ env.DT }}
           name: Release ${{ github.ref }} ${{ env.DT }}
-          files: |
-            ${{ env.PROG_NAME }}-${{ matrix.target }}.zip
+          files: /tmp/beatman-*
+          draft: false
