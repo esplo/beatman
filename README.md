@@ -37,7 +37,7 @@ WIP
 
 - table-url
   - 難易度表のURL。 `table.html` または `score.json` を指定する。
-  - Satellite (https://stellabms.xyz/sl/table.html)、Stella (https://stellabms.xyz/st/table.html) で動作確認済み
+  - [Satellite](https://stellabms.xyz/sl/table.html)、[Stella](https://stellabms.xyz/st/table.html) で動作確認済み
 - level-limit
   - 検索したい上限難易度を指定。現状、数値のみ対応。
 
