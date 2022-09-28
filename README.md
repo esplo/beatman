@@ -85,13 +85,15 @@ WIP
 ### organize: 重複フォルダのマージ、特定フォルダへの移動
 
 ```Powershell
-> beatman.exe --mydir O:\bms organize --dest O:\custom
+> beatman.exe --mydir O:\bms organize --dest O:\custom --shard
 ```
 
 オプションの説明
 
 - dest
   - 移動したい先のフォルダ。指定しない場合は、`mydir`と同じフォルダに展開する。
+- shard
+  - フォルダ名に従い、10個のフォルダに分散して整理。指定しない場合は、1フォルダに整理。
 
 重複フォルダとみなすのは、同一のbmsファイルがあり、かつフォルダにあるファイル名の80%以上が一致している場合です。
 
