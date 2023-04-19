@@ -7,6 +7,7 @@ mod chart_hashes;
 mod fsutil;
 mod ops;
 mod table_loader;
+mod utils;
 use clap::{Parser, Subcommand};
 use std::env;
 use std::io::Write;
@@ -79,10 +80,20 @@ enum Commands {
         folder_default_json: PathBuf,
         #[clap(long)]
         lower_limit_level: u8,
-        #[clap(long, help = "EASY / NORMAL / HARD")]
+        #[clap(long, help = "EASY / NORMAL / HARD / EXHARD")]
         target_lamp: String,
         #[clap(long)]
         task_notes: u32,
+    },
+
+    #[clap(about = "create an oldest played charts list")]
+    Oldest {
+        #[clap(long)]
+        player_score_path: PathBuf,
+        #[clap(long)]
+        folder_default_json: PathBuf,
+        #[clap(long, help = "EASY / NORMAL / HARD / EXHARD")]
+        target_lamp: String,
     },
 }
 
@@ -187,6 +198,7 @@ fn main() -> Result<()> {
                 "EASY" => Ok(4_u8),
                 "NORMAL" => Ok(5_u8),
                 "HARD" => Ok(6_u8),
+                "EXHARD" => Ok(7_u8),
                 _ => Err("Invalid target-lamp"),
             }?;
             ops::create_task_folder::create_task_folder(
@@ -197,6 +209,25 @@ fn main() -> Result<()> {
                 *lower_limit_level,
                 lamp_num,
                 *task_notes,
+            )?;
+        }
+        Commands::Oldest {
+            player_score_path,
+            folder_default_json,
+            target_lamp,
+        } => {
+            let lamp_num = match target_lamp.as_str() {
+                "ASSIST_EASY" => Ok(3_u8),
+                "EASY" => Ok(4_u8),
+                "NORMAL" => Ok(5_u8),
+                "HARD" => Ok(6_u8),
+                "EXHARD" => Ok(7_u8),
+                _ => Err("Invalid target-lamp"),
+            }?;
+            ops::create_oldest_played_folder::create_oldest_played_folder(
+                player_score_path,
+                folder_default_json,
+                lamp_num,
             )?;
         }
     }

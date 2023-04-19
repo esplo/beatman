@@ -111,7 +111,7 @@ WIP
 ### task: (beatoraja限定) 目的に応じたカスタムフォルダを作成
 
 ```Powershell
-> beatman.exe --mydir O:\bms task --table-url https://stellabms.xyz/sl/table.html --player-score-path "D:\beatoraja\player\player1\score.db" --songdata-path "D:\beatoraja\songdata.db" --folder-default-json "D:\beatoraja\table\default.json" --lower-limit-level 3 --target-lamp 4 --task-notes 50000
+> beatman.exe --mydir O:\bms task --table-url https://stellabms.xyz/sl/table.html --player-score-path "D:\beatoraja\player\player1\score.db" --songdata-path "D:\beatoraja\songdata.db" --folder-default-json "D:\beatoraja\table\default.json" --lower-limit-level 3 --target-lamp EASY --task-notes 50000
 ```
 
 健康のために一日50,000ノーツ叩く場合など、日々のタスクを満たす譜面をまとめて1つのフォルダとして表示します。
@@ -136,9 +136,32 @@ beatorajaのデータベースとカスタムフォルダを利用していま�
 - lower-limit-level
   - 対象としたい下限難易度を指定。現状、数値のみ対応。
 - target-lamp
-  - "ASSIST_EASY", "EASY", "NORMAL", "HARD" のいずれかを指定
+  - "ASSIST_EASY", "EASY", "NORMAL", "HARD", "EXHARD" のいずれかを指定
 - task-notes
   - 目標の合計ノーツ数
+
+### oldest: (beatoraja限定) 最終プレイが古い順にカスタムフォルダを作成
+
+```Powershell
+> beatman.exe --mydir O:\bms oldest --player-score-path "D:\beatoraja\player\player1\score.db" --folder-default-json "D:\beatoraja\table\default.json" --target-lamp EXHARD
+```
+
+最終プレイが古い順に譜面をまとめて1つのフォルダとして表示します。
+beatorajaのデータベースとカスタムフォルダを利用しています。
+
+上記の例では、未エクハの譜面からカスタムフォルダを作成します。
+通常、 "NEW FOLDER" 内に表示されます。
+
+オプションの説明
+
+- player-score-path
+  - `beatoraja/player/player1/score.db` などの位置にあるデータベースファイルのパス
+- songdata-path
+  - `beatoraja/songdata.db` などの位置にあるデータベースファイルのパス
+- folder-default-json
+  - `beatoraja/table/default.json` などの位置にある設定ファイルのパス
+- target-lamp
+  - "ASSIST_EASY", "EASY", "NORMAL", "HARD", "EXHARD" のいずれかを指定
 
 ## Troubleshoot
 

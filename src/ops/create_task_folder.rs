@@ -1,10 +1,9 @@
 use crate::errors::Result;
 use crate::table_loader;
+use crate::utils::{add_table_default_json, DefaultTableSong};
 use chrono::Local;
 use log::{debug, info};
 use rusqlite::{named_params, Connection, OpenFlags};
-use serde::{Deserialize, Serialize};
-use std::fs;
 use std::path::Path;
 
 #[derive(Debug, Clone)]
@@ -40,31 +39,11 @@ struct TableDataWithScore {
     totalnotes: u32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct DefaultTable {
-    name: String,
-    folder: Option<Vec<DefaultTableFolder>>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct DefaultTableFolder {
-    class: String,
-    name: String,
-    songs: Vec<DefaultTableSong>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct DefaultTableSong {
-    class: String,
-    title: String,
-    sha256: String,
-}
-
 pub fn create_task_folder(
     table_url: &str,
     player_score_path: &Path,
     songdata_path: &Path,
-    folder_default_json: &Path,
+    folder_default_json_path: &Path,
     lower_limit_level: u8,
     target_lamp: u8,
     task_notes: u32,
@@ -165,17 +144,13 @@ pub fn create_task_folder(
     non_achieved_charts.sort_by(|a, b| cmpfunc(a).partial_cmp(&cmpfunc(b)).unwrap());
     let mut notes = 0;
     let tasks: Vec<DefaultTableSong> = non_achieved_charts
-        .iter()
+        .into_iter()
         .take_while(|s| {
             notes += s.totalnotes;
             // do not omit the last chart
             notes - s.totalnotes < task_notes
         })
-        .map(|t| DefaultTableSong {
-            class: "bms.player.beatoraja.song.SongData".to_owned(),
-            title: t.table_data.title.to_owned(),
-            sha256: t.table_data.sha256.to_owned(),
-        })
+        .map(|t| DefaultTableSong::new(t.table_data.title, t.table_data.sha256))
         .collect();
 
     debug!("{:?}", tasks);
@@ -186,27 +161,8 @@ pub fn create_task_folder(
         notes,
         Local::now().timestamp() % 100
     );
-    let new_folder = DefaultTableFolder {
-        class: "bms.player.beatoraja.TableData$TableFolder".to_owned(),
-        name: folder_name,
-        songs: tasks,
-    };
 
-    debug!("{:?}", new_folder);
-
-    let file = fs::File::open(folder_default_json)?;
-    let mut default_json: DefaultTable = serde_json::from_reader(file)?;
-
-    match default_json.folder {
-        Some(ref mut f) => f.push(new_folder),
-        None => default_json.folder = Some(vec![new_folder]),
-    }
-
-    debug!("{:?}", &default_json);
-
-    fs::write(folder_default_json, &serde_json::to_string(&default_json)?)?;
-
-    info!("wrote today's task.");
+    add_table_default_json(folder_default_json_path, folder_name, tasks)?;
 
     Ok(())
 }
