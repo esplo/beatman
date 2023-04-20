@@ -80,7 +80,7 @@ enum Commands {
         folder_default_json: PathBuf,
         #[clap(long)]
         lower_limit_level: u8,
-        #[clap(long, help = "EASY / NORMAL / HARD / EXHARD")]
+        #[clap(long, help = "AEASY / EASY / NORMAL / HARD / EXHARD")]
         target_lamp: String,
         #[clap(long)]
         task_notes: u32,
@@ -91,9 +91,11 @@ enum Commands {
         #[clap(long)]
         player_score_path: PathBuf,
         #[clap(long)]
-        folder_default_json: PathBuf,
+        table_json_path: PathBuf,
         #[clap(long, help = "EASY / NORMAL / HARD / EXHARD")]
         target_lamp: String,
+        #[clap(short, long, help = "if true, reset table json for this command")]
+        reset: bool,
     },
 }
 
@@ -193,41 +195,27 @@ fn main() -> Result<()> {
             target_lamp,
             task_notes,
         } => {
-            let lamp_num = match target_lamp.as_str() {
-                "ASSIST_EASY" => Ok(3_u8),
-                "EASY" => Ok(4_u8),
-                "NORMAL" => Ok(5_u8),
-                "HARD" => Ok(6_u8),
-                "EXHARD" => Ok(7_u8),
-                _ => Err("Invalid target-lamp"),
-            }?;
             ops::create_task_folder::create_task_folder(
                 table_url,
                 player_score_path,
                 songdata_path,
                 folder_default_json,
                 *lower_limit_level,
-                lamp_num,
+                target_lamp,
                 *task_notes,
             )?;
         }
         Commands::Oldest {
             player_score_path,
-            folder_default_json,
+            table_json_path,
             target_lamp,
+            reset,
         } => {
-            let lamp_num = match target_lamp.as_str() {
-                "ASSIST_EASY" => Ok(3_u8),
-                "EASY" => Ok(4_u8),
-                "NORMAL" => Ok(5_u8),
-                "HARD" => Ok(6_u8),
-                "EXHARD" => Ok(7_u8),
-                _ => Err("Invalid target-lamp"),
-            }?;
             ops::create_oldest_played_folder::create_oldest_played_folder(
                 player_score_path,
-                folder_default_json,
-                lamp_num,
+                table_json_path,
+                target_lamp,
+                *reset,
             )?;
         }
     }

@@ -136,21 +136,20 @@ beatorajaのデータベースとカスタムフォルダを利用していま�
 - lower-limit-level
   - 対象としたい下限難易度を指定。現状、数値のみ対応。
 - target-lamp
-  - "ASSIST_EASY", "EASY", "NORMAL", "HARD", "EXHARD" のいずれかを指定
+  - "AEASY", "EASY", "NORMAL", "HARD", "EXHARD" のいずれかを指定
 - task-notes
   - 目標の合計ノーツ数
 
 ### oldest: (beatoraja限定) 最終プレイが古い順にカスタムフォルダを作成
 
 ```Powershell
-> beatman.exe --mydir O:\bms oldest --player-score-path "D:\beatoraja\player\player1\score.db" --folder-default-json "D:\beatoraja\table\default.json" --target-lamp EXHARD
+> beatman.exe --mydir O:\bms oldest --player-score-path "D:\beatoraja\player\player1\score.db" --target-json-path "D:\beatoraja\table\oldest.json" --target-lamp EXHARD --reset
 ```
 
 最終プレイが古い順に譜面をまとめて1つのフォルダとして表示します。
 beatorajaのデータベースとカスタムフォルダを利用しています。
 
 上記の例では、未エクハの譜面からカスタムフォルダを作成します。
-通常、 "NEW FOLDER" 内に表示されます。
 
 オプションの説明
 
@@ -158,10 +157,12 @@ beatorajaのデータベースとカスタムフォルダを利用していま�
   - `beatoraja/player/player1/score.db` などの位置にあるデータベースファイルのパス
 - songdata-path
   - `beatoraja/songdata.db` などの位置にあるデータベースファイルのパス
-- folder-default-json
-  - `beatoraja/table/default.json` などの位置にある設定ファイルのパス
+- target-json-path
+  - `beatoraja/table/oldest.json` などの位置にある設定ファイルのパス (無い場合は作成される)
 - target-lamp
-  - "ASSIST_EASY", "EASY", "NORMAL", "HARD", "EXHARD" のいずれかを指定
+  - "AEASY", "EASY", "NORMAL", "HARD", "EXHARD" のいずれかを指定
+- reset
+  - 指定すると、このコマンドで作成した既存のテーブルを消去
 
 ## Troubleshoot
 

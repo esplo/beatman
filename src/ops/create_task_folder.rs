@@ -1,6 +1,6 @@
 use crate::errors::Result;
 use crate::table_loader;
-use crate::utils::{add_table_default_json, DefaultTableSong};
+use crate::utils::{add_and_write_table_json, lamp_to_id, DefaultTableSong};
 use chrono::Local;
 use log::{debug, info};
 use rusqlite::{named_params, Connection, OpenFlags};
@@ -45,7 +45,7 @@ pub fn create_task_folder(
     songdata_path: &Path,
     folder_default_json_path: &Path,
     lower_limit_level: u8,
-    target_lamp: u8,
+    target_lamp: &str,
     task_notes: u32,
 ) -> Result<()> {
     info!("open {:?}", player_score_path);
@@ -122,13 +122,14 @@ pub fn create_task_folder(
         })
     });
 
+    let lamp_id = lamp_to_id(target_lamp)?;
     let mut non_achieved_charts: Vec<TableDataWithScore> = target_charts
         .flatten()
         .filter(|td| {
             // filter not achieved charts
             match &td.score {
                 None => true, // pass
-                Some(s) => s.clear < target_lamp,
+                Some(s) => s.clear < lamp_id,
             }
         })
         .collect();
@@ -159,10 +160,10 @@ pub fn create_task_folder(
         "{} {} NOTES {}",
         Local::today().format("%Y.%m.%d"),
         notes,
-        Local::now().timestamp() % 100
+        Local::now().timestamp() % 1000
     );
 
-    add_table_default_json(folder_default_json_path, folder_name, tasks)?;
+    add_and_write_table_json(folder_default_json_path, folder_name, tasks)?;
 
     Ok(())
 }

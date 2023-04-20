@@ -1,9 +1,11 @@
 use crate::errors::Result;
-use crate::utils::{add_table_default_json, DefaultTableSong};
+use crate::utils::{add_and_write_table_json, lamp_to_id, DefaultTableSong};
 use chrono::TimeZone;
 use chrono::{Local, Utc};
 use log::{debug, info};
-use rusqlite::{Connection, OpenFlags};
+use rusqlite::{named_params, Connection, OpenFlags};
+use std::fs::OpenOptions;
+use std::io::Write;
 use std::path::Path;
 
 #[derive(Debug, Clone)]
@@ -24,26 +26,28 @@ struct Score {
 
 pub fn create_oldest_played_folder(
     player_score_path: &Path,
-    // songdata_path: &Path,
-    folder_default_json_path: &Path,
-    _target_lamp: u8,
+    table_json_path: &Path,
+    target_lamp: &str,
+    reset: bool,
 ) -> Result<()> {
     info!("open {:?}", player_score_path);
     let player_scores =
         Connection::open_with_flags(player_score_path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+    let lamp_id = lamp_to_id(target_lamp)?;
 
     let mut query_player_score_stmt = player_scores.prepare(
         "
             SELECT sha256, clear, playcount, minbp, scorehash, date 
             FROM score
+            WHERE clear < :lamp_id
             ORDER BY date ASC
-            LIMIT 60
+            LIMIT 30
             ",
     )?;
 
     debug!("run query");
     let player_scores = query_player_score_stmt
-        .query_map([], |row| {
+        .query_map(named_params! { ":lamp_id": lamp_id }, |row| {
             Ok(Score {
                 sha256: row.get(0)?,
                 clear: row.get(1)?,
@@ -72,12 +76,30 @@ pub fn create_oldest_played_folder(
     debug!("{:?}", songs);
 
     let folder_name = format!(
-        "OLDEST_{}-{}",
+        "OLDEST_<{}_{}-{}",
+        target_lamp,
         Local::today().format("%Y.%m.%d"),
-        Local::now().timestamp() % 100
+        Local::now().timestamp() % 1000
     );
 
-    add_table_default_json(folder_default_json_path, folder_name, songs)?;
+    let init_body = r#"{"name":"Oldest","folder":[]}"#;
+    if !table_json_path.exists() {
+        // create a new file, named oldest.json
+        let mut f = OpenOptions::new()
+            .create_new(true)
+            .write(true)
+            .truncate(true)
+            .open(table_json_path)?;
+        f.write_all(init_body.as_bytes())?;
+    }
+    if reset {
+        let mut f = OpenOptions::new()
+            .write(true)
+            .truncate(true)
+            .open(table_json_path)?;
+        f.write_all(init_body.as_bytes())?;
+    }
+    add_and_write_table_json(table_json_path, folder_name, songs)?;
 
     Ok(())
 }

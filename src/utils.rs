@@ -41,16 +41,17 @@ impl DefaultTableSong {
     }
 }
 
-pub fn add_table_default_json(
-    folder_default_json_path: &Path,
+pub fn add_and_write_table_json(
+    table_json_path: &Path,
     folder_name: String,
     songs: Vec<DefaultTableSong>,
 ) -> Result<()> {
+    debug!("add_table_default_json");
     let new_folder = DefaultTableFolder::new(folder_name, songs);
     debug!("{:?}", new_folder);
 
     {
-        let file = fs::File::open(folder_default_json_path)?;
+        let file = fs::File::open(table_json_path)?;
         let mut default_json: DefaultTable = serde_json::from_reader(file)?;
 
         match default_json.folder {
@@ -59,14 +60,25 @@ pub fn add_table_default_json(
         }
 
         debug!("{:?}", &default_json);
+        debug!("write to {:?}", table_json_path);
 
-        fs::write(
-            folder_default_json_path,
-            &serde_json::to_string(&default_json)?,
-        )?;
+        fs::write(table_json_path, &serde_json::to_string(&default_json)?)?;
     }
 
-    info!("add to default.json.");
+    info!("add to folder json.");
 
     Ok(())
+}
+
+pub fn lamp_to_id(lamp: &str) -> Result<u8> {
+    match lamp {
+        "AEASY" => Ok(3),
+        "EASY" => Ok(4),
+        "NORMAL" => Ok(5),
+        "HARD" => Ok(6),
+        "EXHARD" => Ok(7),
+        "FC" => Ok(8),
+        "PERFECT" => Ok(9),
+        &_ => Err(format!("Invalid Lamp: {}", lamp).into()),
+    }
 }
