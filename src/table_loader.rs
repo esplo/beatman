@@ -10,8 +10,8 @@ pub struct ScoreData {
     pub url_diff: String,
     pub sha256: String,
     pub level: String,
-    #[serde(default)]
-    pub comment: String,
+    // #[serde(default)]
+    // pub comment: String,
 }
 
 pub struct TableLoader {

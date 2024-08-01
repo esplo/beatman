@@ -64,7 +64,7 @@ pub fn create_oldest_played_folder(
         .flatten()
         .into_iter()
         .map(|t| {
-            let dt = Utc.timestamp(t.date as i64, 0);
+            let dt = Utc.timestamp_opt(t.date as i64, 0).unwrap();
             let now = Utc::now();
             let diff = now - dt;
             let days = diff.num_days();
@@ -78,7 +78,7 @@ pub fn create_oldest_played_folder(
     let folder_name = format!(
         "OLDEST_<{}_{}-{}",
         target_lamp,
-        Local::today().format("%Y.%m.%d"),
+        Local::now().format("%Y.%m.%d"),
         Local::now().timestamp() % 1000
     );
 

@@ -158,7 +158,7 @@ pub fn create_task_folder(
 
     let folder_name = format!(
         "{} {} NOTES {}",
-        Local::today().format("%Y.%m.%d"),
+        Local::now().format("%Y.%m.%d"),
         notes,
         Local::now().timestamp() % 1000
     );
