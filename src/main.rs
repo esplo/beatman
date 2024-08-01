@@ -39,8 +39,11 @@ enum Commands {
         )]
         table_url: String,
 
-        #[clap(short, long, help = "check level limit")]
+        #[clap(long, help = "check level limit")]
         level_limit: Option<u8>,
+        
+        #[clap(long, help = "check level lower limit")]
+        level_lower_limit: Option<u8>,
     },
 
     #[clap(about = "install from zip files into mydir")]
@@ -154,8 +157,9 @@ fn main() -> Result<()> {
         Commands::Check {
             table_url,
             level_limit,
+            level_lower_limit,
         } => {
-            ops::check_table_coverage::check_table_coverage(table_url, mydir, level_limit)?;
+            ops::check_table_coverage::check_table_coverage(table_url, mydir, level_limit, level_lower_limit)?;
         }
         Commands::Install { from, recursive } => {
             let from = &Path::new(&from);

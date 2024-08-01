@@ -23,6 +23,7 @@ pub fn check_table_coverage(
     score_url: &str,
     current_dir: &Path,
     level_limit: &Option<u8>,
+    level_lower_limit: &Option<u8>,
 ) -> Result<()> {
     let table = table_loader::TableLoader::new(score_url)?;
     let chart_hashes = ChartHashes::new(&current_dir)?;
@@ -30,6 +31,10 @@ pub fn check_table_coverage(
     let filtered_table = table.charts().iter().filter(|sd| {
         level_limit.map_or(true, |l| {
             sd.level.parse().map(|t: u8| t <= l).unwrap_or(true)
+        })
+    }).filter(|sd| {
+        level_lower_limit.map_or(true, |l| {
+            sd.level.parse().map(|t: u8| l <= t).unwrap_or(true)
         })
     });
 
