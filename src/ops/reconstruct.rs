@@ -3,9 +3,17 @@ use crate::errors::Result;
 use crate::fsutil;
 use log::info;
 use md5::{Digest, Md5};
+use std::fmt::Write;
 use std::fs;
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
+
+fn hex_encode(bytes: &[u8]) -> String {
+    bytes.iter().fold(String::new(), |mut output, b| {
+        let _ = write!(output, "{b:02X}");
+        output
+    })
+}
 
 pub fn reconstruct(current_dir: &Path, dest_dir: &Path, dryrun: bool, shard: bool) -> Result<()> {
     let chart_hashes = ChartHashes::new(current_dir)?;
@@ -18,11 +26,7 @@ pub fn reconstruct(current_dir: &Path, dest_dir: &Path, dryrun: bool, shard: boo
             let mut hasher = Md5::new();
             hasher.update(file_name.as_bytes());
             let hash_bytes = hasher.finalize();
-
-            let hex_string: String = hash_bytes
-                .iter()
-                .map(|byte| format!("{:02X}", byte))
-                .collect();
+            let hex_string = hex_encode(&hash_bytes);
             // 先頭二文字をハッシュとする
             move_to_dir.push(Path::new(&hex_string[0..2]));
         }

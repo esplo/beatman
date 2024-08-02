@@ -11,7 +11,7 @@ use rayon::prelude::*;
 
 type ChartHashMap = HashMap<String, Vec<PathBuf>>;
 
-pub const BMS_EXTENSIONS: &'static [&str] = &["bms", "bml", "bme", "pms"];
+pub const BMS_EXTENSIONS: &[&str] = &["bms", "bml", "bme", "pms"];
 
 pub fn filter_bms_files(path: &Path) -> bool {
     BMS_EXTENSIONS.iter().any(|e| {
@@ -50,7 +50,7 @@ pub struct ChartHashes {
 impl ChartHashes {
     pub fn new(dir: &Path) -> Result<Self> {
         info!("looking charts up....");
-        let charts = charts_traverse(&dir);
+        let charts = charts_traverse(dir);
         info!("found {:?} charts", charts.len());
 
         // calculate hashes parallely
@@ -59,7 +59,7 @@ impl ChartHashes {
         .filter(|path| !path.starts_with("$RECYCLE.BIN") && !path.starts_with("."))
         .map(|path| {
             let with_hash = || -> std::result::Result<(String, &Path), Box<dyn std::error::Error + Send + Sync>> {
-                let mut file = fs::File::open(&path)?;
+                let mut file = fs::File::open(path)?;
                 let mut hasher = Sha256::new();
                 io::copy(&mut file, &mut hasher)?;
                 let hash = hasher.finalize();

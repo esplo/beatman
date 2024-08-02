@@ -38,10 +38,10 @@ fn is_duplicated(path1: &Path, path2: &Path, threshold: Option<u8>) -> Result<bo
 }
 
 pub fn merge(current_dir: &Path, dryrun: bool) -> Result<()> {
-    let chart_hashes = ChartHashes::new(&current_dir)?;
+    let chart_hashes = ChartHashes::new(current_dir)?;
 
     let mut merge_targets: HashMap<&Path, &Path> = HashMap::new();
-    for (_, v) in chart_hashes.hashes() {
+    for v in chart_hashes.hashes().values() {
         if v.len() > 1 {
             // compare 1st and 2nd, and move to 2nd, iterate this...
             // zip (0,1), (1,2), (2,3), ...
@@ -53,7 +53,7 @@ pub fn merge(current_dir: &Path, dryrun: bool) -> Result<()> {
                         Ok(dup) => {
                             if dup {
                                 debug!("duplicated: {}, {:?} {:?}", dup, p1, p2);
-                                merge_targets.insert(&p2p, &p1p);
+                                merge_targets.insert(p2p, p1p);
                             }
                         }
                         Err(e) => error!("{} for {:?} or {:?}", e, p1, p2),

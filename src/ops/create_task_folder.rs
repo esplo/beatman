@@ -98,7 +98,7 @@ pub fn create_task_folder(
             })
             .map_err(|e| e.to_string())?;
 
-        let player_score = player_score.flatten().nth(0);
+        let player_score = player_score.flatten().next();
         if player_score.is_some() {
             debug!("player_score {:?}", player_score);
         }
@@ -112,7 +112,7 @@ pub fn create_task_folder(
                 })
             })
             .map_err(|e| e.to_string())?;
-        let chart_info = chart_info.flatten().nth(0).ok_or("Chart Info Not Found")?;
+        let chart_info = chart_info.flatten().next().ok_or("Chart Info Not Found")?;
         debug!("chart_info {:?}", chart_info);
 
         Ok::<TableDataWithScore, Box<dyn std::error::Error>>(TableDataWithScore {

@@ -18,11 +18,11 @@ fn read_artist_and_title(lines: Vec<String>) -> Result<(Option<String>, Option<S
 
     for l in lines {
         // filter title, artist
-        if l.starts_with("#ARTIST ") {
-            artist = Some(String::from(&l[8..]));
+        if let Some(t) = l.strip_prefix("#ARTIST ") {
+            artist = Some(String::from(t))
         }
-        if l.starts_with("#TITLE ") {
-            title = Some(String::from(&l[7..]));
+        if let Some(t) = l.strip_prefix("#TITLE ") {
+            title = Some(String::from(t));
         }
         if artist.is_some() && title.is_some() {
             break;
@@ -41,7 +41,7 @@ fn sanitize_str(s: &str, n: usize) -> String {
     while !s.is_char_boundary(m) {
         m += 1;
     }
-    (&s[..m]).to_owned()
+    s[..m].to_owned()
 }
 
 fn lookup_names<T>(charts_paths: T) -> impl Iterator<Item = Result<(String, String)>>
@@ -52,7 +52,7 @@ where
         let file = fs::File::open(&path)?;
         let lines = io::BufReader::new(file)
             .lines()
-            .flatten()
+            .map_while(|x| x.ok())
             .collect::<Vec<String>>();
         let (artist1, title1) = read_artist_and_title(lines)?;
 
@@ -61,7 +61,7 @@ where
             let bytes = fs::read(&path)?;
             let (res, enc, b) = encoding_rs::SHIFT_JIS.decode(&bytes);
             debug!("{:?} {:?}", enc, b);
-            let lines = res.into_owned().lines().map(|s| String::from(s)).collect();
+            let lines = res.into_owned().lines().map(String::from).collect();
             read_artist_and_title(lines)?
         } else {
             (None, None)
@@ -112,8 +112,8 @@ fn read_files_and_name(dir: &Path) -> Option<OsString> {
     let mut artists: Vec<String> = info.iter().map(|e| e.0.clone()).collect();
     let mut titles: Vec<String> = info.iter().map(|e| remove_difficulty(&e.1)).collect();
 
-    artists.sort_by(|a, b| a.len().cmp(&b.len()));
-    titles.sort_by(|a, b| a.len().cmp(&b.len()));
+    artists.sort_by_key(|a| a.len());
+    titles.sort_by_key(|a| a.len());
 
     let artist = artists.first();
     let title = titles.first();
@@ -130,7 +130,7 @@ fn read_files_and_name(dir: &Path) -> Option<OsString> {
 }
 
 pub fn rename_dirs(current_dir: &Path, dryrun: bool) -> Result<()> {
-    let chart_hashes = ChartHashes::new(&current_dir)?;
+    let chart_hashes = ChartHashes::new(current_dir)?;
     let parents = chart_hashes.parents()?;
 
     // process in parallel, but rename sequentially
@@ -139,28 +139,28 @@ pub fn rename_dirs(current_dir: &Path, dryrun: bool) -> Result<()> {
     vec_parents
         .par_iter()
         .map(|path| {
-            read_files_and_name(&path).and_then(|name| {
+            read_files_and_name(path).and_then(|name| {
                 path.parent()
-                    .map(|par| par.join(&PathBuf::from(name)))
+                    .map(|par| par.join(PathBuf::from(name)))
                     .map(|n| (path, n))
             })
         })
         .collect_into_vec(&mut rename_targets);
 
-    for s in rename_targets {
-        if let Some((from, dest)) = s {
+    rename_targets
+        .into_iter()
+        .flatten()
+        .for_each(|(from, dest)| {
             if from.as_os_str() != dest.as_os_str() {
                 info!("rename {:?} -> {:?}", from, dest);
                 if dest.exists() {
                     warn!("rename cancelled. destination already exists. {:?}", dest);
-                } else {
-                    if !dryrun {
-                        fsutil::move_and_remove_dir(&from, &dest)?
-                    }
+                } else if !dryrun {
+                    fsutil::move_and_remove_dir(from, &dest)
+                        .unwrap_or(warn!("rename failed. {:?} -> {:?}", from, dest))
                 }
             }
-        }
-    }
+        });
 
     Ok(())
 }

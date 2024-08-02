@@ -15,7 +15,7 @@ pub fn install_from_dirs(target_dir: &Path, dest_dir: &Path, dryrun: bool) -> Re
 
     for d in &dirs {
         info!("target_dir {:?}", d.file_name());
-        install_from_dir(&d.path(), &dest_dir, dryrun)?;
+        install_from_dir(&d.path(), dest_dir, dryrun)?;
     }
 
     Ok(())
@@ -41,7 +41,7 @@ pub fn install_from_dir(target_dir: &Path, dest_dir: &Path, dryrun: bool) -> Res
     for zip_file in zips {
         info!("extracting {:?}", zip_file.file_name());
 
-        let file = fs::File::open(&zip_file.path()).unwrap();
+        let file = fs::File::open(zip_file.path()).unwrap();
         let mut archive = zip::ZipArchive::new(file).unwrap();
 
         let n = archive.len();
@@ -78,7 +78,7 @@ pub fn install_from_dir(target_dir: &Path, dest_dir: &Path, dryrun: bool) -> Res
                 .path()
                 .parent()
                 .unwrap()
-                .join(&outpath.file_name().unwrap());
+                .join(outpath.file_name().unwrap());
 
             if (*file.name()).ends_with('/') {
                 debug!("ignore {}", file.name());
@@ -93,7 +93,7 @@ pub fn install_from_dir(target_dir: &Path, dest_dir: &Path, dryrun: bool) -> Res
                 if !dryrun {
                     if let Some(p) = outpath.parent() {
                         if !p.exists() {
-                            fs::create_dir_all(&p).unwrap();
+                            fs::create_dir_all(p).unwrap();
                         }
                     }
                     let mut outfile = fs::File::create(&outpath).unwrap();

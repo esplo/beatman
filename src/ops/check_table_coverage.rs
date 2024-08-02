@@ -26,17 +26,21 @@ pub fn check_table_coverage(
     level_lower_limit: &Option<u8>,
 ) -> Result<()> {
     let table = table_loader::TableLoader::new(score_url)?;
-    let chart_hashes = ChartHashes::new(&current_dir)?;
+    let chart_hashes = ChartHashes::new(current_dir)?;
 
-    let filtered_table = table.charts().iter().filter(|sd| {
-        level_limit.map_or(true, |l| {
-            sd.level.parse().map(|t: u8| t <= l).unwrap_or(true)
+    let filtered_table = table
+        .charts()
+        .iter()
+        .filter(|sd| {
+            level_limit.map_or(true, |l| {
+                sd.level.parse().map(|t: u8| t <= l).unwrap_or(true)
+            })
         })
-    }).filter(|sd| {
-        level_lower_limit.map_or(true, |l| {
-            sd.level.parse().map(|t: u8| l <= t).unwrap_or(true)
-        })
-    });
+        .filter(|sd| {
+            level_lower_limit.map_or(true, |l| {
+                sd.level.parse().map(|t: u8| l <= t).unwrap_or(true)
+            })
+        });
 
     let mut total = 0;
     let mut counter = 0;
@@ -66,7 +70,7 @@ pub fn check_table_coverage(
     serde_json::to_string(
         &CheckSummary { 
             found: counter, 
-            total: total  
+            total  
           }).unwrap());
     Ok(())
 }

@@ -1,6 +1,5 @@
 use crate::errors::Result;
 use log::debug;
-use std::ffi::OsString;
 use std::path::Path;
 use std::{fs, io};
 
@@ -16,7 +15,7 @@ pub fn move_and_remove_dir(from: &Path, dest: &Path) -> Result<()> {
         return Err(format!("{:?} is not a directory", missing).into());
     }
 
-    for entry in fs::read_dir(&from)? {
+    for entry in fs::read_dir(from)? {
         let entry = entry?;
         let ty = entry.file_type()?;
         if ty.is_dir() {
@@ -24,9 +23,7 @@ pub fn move_and_remove_dir(from: &Path, dest: &Path) -> Result<()> {
         } else {
             // ignore troublesome files
             debug!("{:?}", entry.path().file_name());
-            if entry.file_name() == OsString::from("desktop.ini")
-                || entry.file_name() == OsString::from(".DS_Store")
-            {
+            if entry.file_name() == *"desktop.ini" || entry.file_name() == *".DS_Store" {
                 continue;
             }
 
@@ -54,7 +51,7 @@ pub fn move_and_remove_dir(from: &Path, dest: &Path) -> Result<()> {
             }?;
         }
     }
-    fs::remove_dir_all(&from)?;
+    fs::remove_dir_all(from)?;
     Ok(())
 }
 

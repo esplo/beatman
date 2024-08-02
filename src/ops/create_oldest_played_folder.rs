@@ -62,7 +62,6 @@ pub fn create_oldest_played_folder(
 
     let songs: Vec<DefaultTableSong> = player_scores
         .flatten()
-        .into_iter()
         .map(|t| {
             let dt = Utc.timestamp_opt(t.date as i64, 0).unwrap();
             let now = Utc::now();

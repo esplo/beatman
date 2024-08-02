@@ -41,7 +41,7 @@ enum Commands {
 
         #[clap(long, help = "check level limit")]
         level_limit: Option<u8>,
-        
+
         #[clap(long, help = "check level lower limit")]
         level_lower_limit: Option<u8>,
     },
@@ -159,7 +159,12 @@ fn main() -> Result<()> {
             level_limit,
             level_lower_limit,
         } => {
-            ops::check_table_coverage::check_table_coverage(table_url, mydir, level_limit, level_lower_limit)?;
+            ops::check_table_coverage::check_table_coverage(
+                table_url,
+                mydir,
+                level_limit,
+                level_lower_limit,
+            )?;
         }
         Commands::Install { from, recursive } => {
             let from = &Path::new(&from);
@@ -168,27 +173,27 @@ fn main() -> Result<()> {
                 return Err("from is not a directory".into());
             }
             if *recursive {
-                ops::install_from_dir::install_from_dirs(&from, &mydir, dryrun)?;
+                ops::install_from_dir::install_from_dirs(from, mydir, dryrun)?;
             } else {
-                ops::install_from_dir::install_from_dir(&from, &mydir, dryrun)?;
+                ops::install_from_dir::install_from_dir(from, mydir, dryrun)?;
             }
         }
         Commands::Organize { dest, shard } => {
-            let dest = dest.as_ref().map(|d| Path::new(d)).unwrap_or(mydir);
+            let dest = dest.as_ref().map(Path::new).unwrap_or(mydir);
             if !dest.is_dir() {
                 error!("dest is not a directory");
                 return Err("dest is not a directory".into());
             }
 
             info!("== rename ==");
-            ops::rename::rename_dirs(&mydir, dryrun)?;
+            ops::rename::rename_dirs(mydir, dryrun)?;
             info!("== merge ==");
-            ops::merge::merge(&mydir, dryrun)?;
+            ops::merge::merge(mydir, dryrun)?;
             info!("== reconstruct ==");
-            ops::reconstruct::reconstruct(&mydir, &dest, dryrun, *shard)?;
+            ops::reconstruct::reconstruct(mydir, dest, dryrun, *shard)?;
         }
         Commands::Rename {} => {
-            ops::rename::rename_dirs(&mydir, dryrun)?;
+            ops::rename::rename_dirs(mydir, dryrun)?;
         }
         Commands::Task {
             table_url,
