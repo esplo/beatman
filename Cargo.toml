@@ -20,6 +20,7 @@ regex = "1.6"
 chrono = "0.4.22"
 strum = "0.24.1"
 strum_macros = "0.24.3"
+md-5 = "0.10.6"
 
 [dependencies.rusqlite]
 version = "0.28.0"
