@@ -21,6 +21,7 @@ chrono = "0.4.38"
 strum = "0.24.1"
 strum_macros = "0.24.3"
 md-5 = "0.10.6"
+unrar = "0.5.3"
 
 [dependencies.rusqlite]
 version = "0.28.0"

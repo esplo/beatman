@@ -1,10 +1,12 @@
 use crate::errors::Result;
-use crate::fsutil;
-use log::{debug, info};
+use crate::ops::rename::rename_dirs;
+use chrono::{DateTime, Utc};
+use core::str;
+use log::{debug, info, warn};
+use std::ffi::OsStr;
 use std::fs;
-use std::io;
 use std::path::Path;
-use std::time::SystemTime;
+use unrar::Archive;
 
 pub fn install_from_dirs(target_dir: &Path, dest_dir: &Path, dryrun: bool) -> Result<()> {
     let dirs: Vec<fs::DirEntry> = target_dir
@@ -16,102 +18,110 @@ pub fn install_from_dirs(target_dir: &Path, dest_dir: &Path, dryrun: bool) -> Re
     for d in &dirs {
         info!("target_dir {:?}", d.file_name());
         install_from_dir(&d.path(), dest_dir, dryrun)?;
+        // delete
+        if !dryrun {
+            fs::remove_dir(d.path()).unwrap_or_else(|e| warn!("failed to remove dir: {:?}", e));
+        }
     }
 
     Ok(())
 }
 
 pub fn install_from_dir(target_dir: &Path, dest_dir: &Path, dryrun: bool) -> Result<()> {
+    // サブフォルダを対象ディレクトリに追加
+    let utc: DateTime<Utc> = Utc::now();
+    let format = "%s%6f";
+    let ts = utc.format(format).to_string();
+
+    let dest_dir = dest_dir.join(ts);
+
     // lookup zip files
     let zips: Vec<fs::DirEntry> = target_dir
         .read_dir()?
         .flatten()
-        .filter(|e| e.path().extension().and_then(|e| e.to_str()) == Some("zip"))
+        .filter(|e| {
+            let path = e.path();
+            let ext = path.extension();
+            ext == Some(OsStr::new("zip")) || ext == Some(OsStr::new("rar"))
+        })
         .collect();
 
-    // define destination folder name
-    // this will be detected automatically from zips.
-    // - use the zip file with the largest number of files
-    let ts = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
-        Ok(n) => n.as_micros(),
-        Err(_) => 0,
-    };
-    let mut dest_name = (0, ts.to_string().into());
-
     for zip_file in zips {
-        info!("extracting {:?}", zip_file.file_name());
+        info!(
+            "extracting: source:{:?} , dest:{:?}",
+            zip_file.file_name(),
+            dest_dir
+        );
 
-        let file = fs::File::open(zip_file.path()).unwrap();
-        let mut archive = zip::ZipArchive::new(file).unwrap();
-
-        let n = archive.len();
-
-        // update name as zip's name. this will be overwritten as the name of the inside dir
-        if dest_name.0 < n {
-            // set n-1 in order to update later
-            dest_name = (n - 1, zip_file.file_name().to_os_string());
+        if dryrun {
+            continue;
         }
 
-        for i in 0..n {
-            let mut file = archive.by_index(i).unwrap();
-            let outpath = match file.enclosed_name() {
-                Some(path) => path.to_owned(),
-                None => continue,
-            };
+        match zip_file.path().extension() {
+            None => continue,
+            Some(os_str) => match os_str.to_str() {
+                Some("zip") => {
+                    let file = fs::File::open(zip_file.path()).unwrap();
+                    let mut archive = zip::ZipArchive::new(file).unwrap();
 
-            // update dest_name with its the top dir
-            if dest_name.0 < n && outpath.parent().is_some() {
-                let top_dir = outpath
-                    .ancestors()
-                    .into_iter()
-                    .filter(|e| e != &Path::new("") && e != &Path::new("/"))
-                    .last();
+                    for i in 0..archive.len() {
+                        let mut file = archive.by_index(i)?;
 
-                if let Some(name) = top_dir {
-                    // update once, by setting n
-                    dest_name = (n, std::ffi::OsString::from(name));
-                }
-            }
+                        // UTF-8かSJISかを判定する
+                        let sjis_name = encoding_rs::SHIFT_JIS.decode(file.name_raw()).0;
+                        let archived_file_name =
+                            str::from_utf8(file.name_raw()).unwrap_or(&sjis_name);
 
-            // flatten file (remove directory name)
-            let outpath = zip_file
-                .path()
-                .parent()
-                .unwrap()
-                .join(outpath.file_name().unwrap());
+                        let file_name = Path::new(archived_file_name).file_name().unwrap();
+                        let t = &dest_dir.join(Path::new(file_name));
 
-            if (*file.name()).ends_with('/') {
-                debug!("ignore {}", file.name());
-            } else {
-                debug!(
-                    "File {} extracted to \"{}\" ({} bytes)",
-                    i,
-                    outpath.display(),
-                    file.size()
-                );
-
-                if !dryrun {
-                    if let Some(p) = outpath.parent() {
-                        if !p.exists() {
-                            fs::create_dir_all(p).unwrap();
-                        }
+                        t.parent().map(fs::create_dir_all);
+                        let mut output = fs::File::create(t)
+                            .unwrap_or_else(|_| panic!("Failed to create file: {:?}", t));
+                        std::io::copy(&mut file, &mut output)?;
                     }
-                    let mut outfile = fs::File::create(&outpath).unwrap();
-                    io::copy(&mut file, &mut outfile).unwrap();
                 }
-            }
-        }
+                Some("rar") => {
+                    let mut archive = Archive::new(&zip_file.path())
+                        .open_for_processing()
+                        .unwrap();
+                    while let Some(header) = archive.read_header()? {
+                        debug!(
+                            "{} bytes: {}",
+                            header.entry().unpacked_size,
+                            header.entry().filename.to_string_lossy(),
+                        );
+                        archive = if header.entry().is_file() {
+                            let archived_path = header.entry().filename.file_name();
+                            match archived_path {
+                                Some(n) => {
+                                    let t = dest_dir.join(Path::new(n));
+                                    header.extract_to(t)?
+                                }
+                                None => {
+                                    warn!(
+                                        "Invalid file {:?} in {:?}",
+                                        &header.entry().filename,
+                                        zip_file.path()
+                                    );
+                                    header.skip()?
+                                }
+                            }
+                        } else {
+                            header.skip()?
+                        };
+                    }
+                }
+                _ => panic!("unknown extension"),
+            },
+        };
 
-        if !dryrun {
-            fs::remove_file(zip_file.path())?;
-        }
+        // delete
+        fs::remove_file(zip_file.path())?;
     }
 
-    if !dryrun {
-        let dest = dest_dir.join(dest_name.1);
-        fs::create_dir_all(&dest)?;
-        fsutil::move_and_remove_dir(target_dir, &dest)?;
-    }
+    // rename
+    rename_dirs(&dest_dir, dryrun)?;
 
     Ok(())
 }

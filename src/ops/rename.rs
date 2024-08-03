@@ -5,7 +5,6 @@ use log::warn;
 use log::{debug, info};
 use rayon::prelude::*;
 use regex::Regex;
-
 use std::ffi::OsString;
 use std::fs;
 use std::io::{self, BufRead};
@@ -157,7 +156,7 @@ pub fn rename_dirs(current_dir: &Path, dryrun: bool) -> Result<()> {
                     warn!("rename cancelled. destination already exists. {:?}", dest);
                 } else if !dryrun {
                     fsutil::move_and_remove_dir(from, &dest)
-                        .unwrap_or(warn!("rename failed. {:?} -> {:?}", from, dest))
+                        .unwrap_or_else(|_| warn!("rename failed. {:?} -> {:?}", from, dest))
                 }
             }
         });

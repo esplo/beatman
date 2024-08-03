@@ -119,7 +119,10 @@ struct LogLine {
 fn main() -> Result<()> {
     let start = Instant::now();
 
-    env::set_var("RUST_LOG", "info");
+    env::set_var(
+        "RUST_LOG",
+        env::var("RUST_LOG").unwrap_or(String::from("info")),
+    );
 
     let cli = Cli::parse();
     if cli.jsonlog {
