@@ -33,35 +33,17 @@ jobs:
 
     steps:
       - name: Setup code
-        uses: actions/checkout@v3
-
-      - name: Install musl and required packages
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt update && sudo apt install -y musl-tools libssl-dev pkg-config build-essential autoconf
-
-      - name: link sslconf
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          cd /usr/include/openssl/
-          sudo ln -s /usr/include/gnutls/openssl.h .
-          sudo ln -s ../x86_64-linux-gnu/openssl/opensslconf.h .
+        uses: actions/checkout@v7
 
       - name: Setup Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
-          toolchain: stable
-          target: ${{ matrix.target }}
-          override: true
+          targets: ${{ matrix.target }}
 
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release --target=${{ matrix.target }}
+        run: cargo build --release --locked --target=${{ matrix.target }}
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v7
         with:
           path: target/${{ matrix.target }}/release/${{ env.PROG_NAME }}${{ matrix.ext }}
           name: ${{ env.PROG_NAME }}-${{ matrix.target }}
@@ -69,12 +51,14 @@ jobs:
   create-release:
     needs: [build]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Get date for release tag
         env:
           TZ: "Asia/Tokyo"
         run: echo "DT=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
       - name: cp artifact files
@@ -90,7 +74,7 @@ jobs:
             cp ./artifacts/${PL}/${FULL_FILENAME} /tmp/${PL}${EXT}
           done
       - name: Create release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
