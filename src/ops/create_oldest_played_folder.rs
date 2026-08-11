@@ -21,7 +21,7 @@ struct Score {
     #[allow(dead_code)]
     scorehash: String,
     #[allow(dead_code)]
-    date: u64,
+    date: i64,
 }
 
 pub fn create_oldest_played_folder(
@@ -63,7 +63,7 @@ pub fn create_oldest_played_folder(
     let songs: Vec<DefaultTableSong> = player_scores
         .flatten()
         .map(|t| {
-            let dt = Utc.timestamp_opt(t.date as i64, 0).unwrap();
+            let dt = Utc.timestamp_opt(t.date, 0).unwrap();
             let now = Utc::now();
             let diff = now - dt;
             let days = diff.num_days();
