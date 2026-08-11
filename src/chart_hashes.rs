@@ -4,8 +4,9 @@ use log::{debug, info};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::fs;
+use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::{fs, io};
 
 use rayon::prelude::*;
 
@@ -61,9 +62,19 @@ impl ChartHashes {
             let with_hash = || -> std::result::Result<(String, &Path), Box<dyn std::error::Error + Send + Sync>> {
                 let mut file = fs::File::open(path)?;
                 let mut hasher = Sha256::new();
-                io::copy(&mut file, &mut hasher)?;
+                let mut buffer = [0_u8; 8192];
+                loop {
+                    let bytes_read = file.read(&mut buffer)?;
+                    if bytes_read == 0 {
+                        break;
+                    }
+                    hasher.update(&buffer[..bytes_read]);
+                }
                 let hash = hasher.finalize();
-                let hash_string = format!("{:x}", hash);
+                let hash_string = hash
+                    .iter()
+                    .map(|byte| format!("{byte:02x}"))
+                    .collect::<String>();
                 debug!("Binary hash of {:?} is {}", path, hash_string);
                 Ok((hash_string, path))
             };
@@ -94,8 +105,8 @@ impl ChartHashes {
     pub fn parents(&self) -> Result<HashSet<&Path>> {
         let parents: HashSet<&Path> = HashSet::from_iter(
             self.hashes()
-                .iter()
-                .flat_map(|(_, v)| v[0].parent())
+                .values()
+                .flat_map(|v| v[0].parent())
                 .collect::<Vec<&Path>>(),
         );
         filter_subdir(parents)

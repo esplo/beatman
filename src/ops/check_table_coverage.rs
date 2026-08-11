@@ -32,14 +32,10 @@ pub fn check_table_coverage(
         .charts()
         .iter()
         .filter(|sd| {
-            level_limit.map_or(true, |l| {
-                sd.level.parse().map(|t: u8| t <= l).unwrap_or(true)
-            })
+            level_limit.is_none_or(|l| sd.level.parse().map(|t: u8| t <= l).unwrap_or(true))
         })
         .filter(|sd| {
-            level_lower_limit.map_or(true, |l| {
-                sd.level.parse().map(|t: u8| l <= t).unwrap_or(true)
-            })
+            level_lower_limit.is_none_or(|l| sd.level.parse().map(|t: u8| l <= t).unwrap_or(true))
         });
 
     let mut total = 0;
@@ -56,21 +52,33 @@ pub fn check_table_coverage(
             if !sd.url_diff.is_empty() {
                 info!("--diff--> {}", sd.url_diff);
             }
-            info!(target: &FrontendMsg::CheckNotFound.to_string(), "{}", 
-            serde_json::to_string(
-                &NotFoundInfo { 
-                level: sd.level.clone(), title: sd.title.clone(), url: sd.url.clone(), 
-                diff_url: if sd.url_diff.is_empty() { None } else {Some(sd.url_diff.clone())}
-            }).unwrap());
+            info!(
+                target: &FrontendMsg::CheckNotFound.to_string(),
+                "{}",
+                serde_json::to_string(&NotFoundInfo {
+                    level: sd.level.clone(),
+                    title: sd.title.clone(),
+                    url: sd.url.clone(),
+                    diff_url: if sd.url_diff.is_empty() {
+                        None
+                    } else {
+                        Some(sd.url_diff.clone())
+                    },
+                })
+                .unwrap()
+            );
         }
     });
 
     info!("{} / {} charts found", counter, total);
-    info!(target: &FrontendMsg::CheckSummary.to_string(), "{}", 
-    serde_json::to_string(
-        &CheckSummary { 
-            found: counter, 
-            total  
-          }).unwrap());
+    info!(
+        target: &FrontendMsg::CheckSummary.to_string(),
+        "{}",
+        serde_json::to_string(&CheckSummary {
+            found: counter,
+            total,
+        })
+        .unwrap()
+    );
     Ok(())
 }
